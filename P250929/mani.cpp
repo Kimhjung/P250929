@@ -2,19 +2,29 @@
 #include <Windows.h>
 #include <conio.h>
 
-
 using namespace std;
+
+enum ERenderScreenBuffer
+{
+	FrontBuffer = 0,
+	BackBuffer = 1,
+};
+
+int CurrentBufferIndex = FrontBuffer;
 
 struct FCharacter
 {
 	int X;
 	int Y;
-	char Shape;
+	string Shape;
 };
 
 FCharacter Characters[3];
 
 int KeyCode;
+
+HANDLE FrontBufferHandle;
+HANDLE BackBufferHandle;
 
 void Input()
 {
@@ -31,10 +41,19 @@ void RenderCharacter(const FCharacter* InData)
 	//Position.Y = (SHORT)(*InData).Y;
 	Position.Y = (SHORT)InData->Y;
 
-	//InData->Y++;
-
-	SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), Position);
-	cout << InData->Shape;
+	//더블버퍼링 해결
+	if(CurrentBufferIndex == FrontBuffer)
+	{
+		SetConsoleCursorPosition(FrontBufferHandle, Position);
+		WriteConsole(FrontBufferHandle, InData->Shape.c_str(), 1, NULL, NULL);
+	}
+	else
+	{
+		SetConsoleCursorPosition(BackBufferHandle, Position);
+		WriteConsole(BackBufferHandle, InData->Shape.c_str(), 1, NULL, NULL);
+	}
+	CurrentBufferIndex++;
+	CurrentBufferIndex = CurrentBufferIndex % 2;
 }
 
 void Render()
@@ -46,6 +65,7 @@ void Render()
 	}
 }
 
+//초기화
 void Init()
 {
 	//형변환, Casting
@@ -53,11 +73,21 @@ void Init()
 
 	Characters[0].X = 1;
 	Characters[0].Y = 1;
-	Characters[0].Shape = 'P';
+	Characters[0].Shape = "P";
 
 	Characters[1].X = 10;
 	Characters[1].Y = 10;
-	Characters[1].Shape = 'M';
+	Characters[1].Shape = "M";
+
+	//C++에 null 없음
+	//NULL = 0 값 넣어준거 있음
+	FrontBufferHandle = CreateConsoleScreenBuffer(GENERIC_READ | GENERIC_WRITE, 0, nullptr, CONSOLE_TEXTMODE_BUFFER, NULL);
+	BackBufferHandle = CreateConsoleScreenBuffer(GENERIC_READ | GENERIC_WRITE, 0, nullptr, CONSOLE_TEXTMODE_BUFFER, NULL);
+}
+
+void Clear()
+{
+
 }
 
 void MovePlayer()
@@ -110,9 +140,6 @@ void Tick()
 	MovePlayer();
 	MoveMonster();
 }
-
-
-
 
 int main()
 {
