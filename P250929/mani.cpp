@@ -1,94 +1,134 @@
-#include <iostream>
+﻿#include <iostream>
+#include <Windows.h>
 #include <conio.h>
+
 
 using namespace std;
 
-int PlayerX = 1;
-int PlayerY = 1;
+struct FCharacter
+{
+	int X;
+	int Y;
+	char Shape;
+};
 
-int PlayerMinX = 1;
-int PlayerMinY = 1;
-int PlayerMaxX = 9;
-int PlayerMaxY = 9;
-
-char PlayerShape = 'P';
-char MonsterShape = 'M';
-
-char sprite[10] = { ' ' };
-
-char World[10][10];
+FCharacter Characters[3];
 
 int KeyCode;
-
 
 void Input()
 {
 	KeyCode = _getch();
 }
 
-void Process()
-{
-	if (KeyCode == 'W' || KeyCode == 'w')
-	{
-		PlayerY--;
-	}
-	else if (KeyCode == 'A' || KeyCode == 'a')
-	{
-		PlayerX--;
-	}
-	else if (KeyCode == 'S' || KeyCode == 's')
-	{
-		PlayerY++;
-	}
-	else if (KeyCode == 'D' || KeyCode == 'd')
-	{
-		PlayerX++;
-	}
 
-	if (PlayerX < PlayerMinX) {
-		PlayerX = PlayerMinX;
-	}
-	else if (PlayerY < PlayerMinY) {
-		PlayerY = PlayerMinY;
-	}
-	else if (PlayerX > PlayerMaxX) {
-		PlayerX = PlayerMaxX;
-	}
-	else if (PlayerY > PlayerMaxY) {
-		PlayerY = PlayerMaxY;
-	}
+//const: 상수 - 원본 값 바꾸지 않겠다 선언
+//C++, C#
+void RenderCharacter(const FCharacter* InData)
+{
+	COORD Position;
+	Position.X = (SHORT)InData->X;
+	//Position.Y = (SHORT)(*InData).Y;
+	Position.Y = (SHORT)InData->Y;
+
+	//InData->Y++;
+
+	SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), Position);
+	cout << InData->Shape;
 }
 
 void Render()
 {
 	system("cls");
-
-	cout << MonsterShape;
-
-	for (int Y = 0; Y <= PlayerMaxY; ++Y)
+	for (int i = 0; i < 3; ++i)
 	{
-		for (int X = 0; X <= PlayerMaxX; ++X)
-		{
-			if (PlayerX == X && PlayerY == Y)
-			{
-				cout << PlayerShape;
-			}
-			else
-			{
-				cout << sprite[World[Y][X]];
-			}
-		}
-		cout << "\n";
+		RenderCharacter(&Characters[i]);
 	}
-} //Render
+}
+
+void Init()
+{
+	//형변환, Casting
+	srand((unsigned int)time(nullptr));
+
+	Characters[0].X = 1;
+	Characters[0].Y = 1;
+	Characters[0].Shape = 'P';
+
+	Characters[1].X = 10;
+	Characters[1].Y = 10;
+	Characters[1].Shape = 'M';
+}
+
+void MovePlayer()
+{
+	if (KeyCode == 'w')
+	{
+		Characters[0].Y--;
+	}
+	else if (KeyCode == 's')
+	{
+		Characters[0].Y++;
+	}
+	else if (KeyCode == 'a')
+	{
+		Characters[0].X--;
+	}
+	else if (KeyCode == 'd')
+	{
+		Characters[0].X++;
+	}
+}
+
+void MoveMonster()
+{
+	int Direction = rand() % 4;
+
+	switch (Direction)
+	{
+	case 0:	//Up
+		Characters[1].Y--;
+		break;
+	case 1:	//Down
+		Characters[1].Y++;
+		break;
+	case 2: //Left
+		Characters[1].X--;
+		break;
+	case 3: //Right
+		Characters[1].X++;
+		break;
+	default:
+		//Error
+		break;
+	}
+
+}
+
+void Tick()
+{
+	MovePlayer();
+	MoveMonster();
+}
+
+
+
 
 int main()
 {
-	for(;;)
+	//FCharacter* Data = new FCharacter();
+
+	//(*Data).X = 1;
+	//Data->X = 1;
+
+	Init();
+
+	while (true)
 	{
-		Render();
 		Input();
-		Process();
+		Tick();
+		Render();
 	}
-	
+
+	return 0;
 }
