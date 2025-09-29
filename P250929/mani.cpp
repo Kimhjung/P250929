@@ -2,12 +2,13 @@
 #include <Windows.h>
 #include <conio.h>
 
+
 using namespace std;
 
 enum ERenderScreenBuffer
 {
 	FrontBuffer = 0,
-	BackBuffer = 1,
+	BackBuffer = 1
 };
 
 int CurrentBufferIndex = FrontBuffer;
@@ -23,8 +24,7 @@ FCharacter Characters[3];
 
 int KeyCode;
 
-HANDLE FrontBufferHandle;
-HANDLE BackBufferHandle;
+HANDLE ScreenBuffers[2];
 
 void Input()
 {
@@ -32,7 +32,6 @@ void Input()
 }
 
 
-//const: 상수 - 원본 값 바꾸지 않겠다 선언
 //C++, C#
 void RenderCharacter(const FCharacter* InData)
 {
@@ -41,34 +40,57 @@ void RenderCharacter(const FCharacter* InData)
 	//Position.Y = (SHORT)(*InData).Y;
 	Position.Y = (SHORT)InData->Y;
 
-	//더블버퍼링 해결
-	if(CurrentBufferIndex == FrontBuffer)
-	{
-		SetConsoleCursorPosition(FrontBufferHandle, Position);
-		WriteConsole(FrontBufferHandle, InData->Shape.c_str(), 1, NULL, NULL);
-	}
-	else
-	{
-		SetConsoleCursorPosition(BackBufferHandle, Position);
-		WriteConsole(BackBufferHandle, InData->Shape.c_str(), 1, NULL, NULL);
-	}
+	SetConsoleCursorPosition(ScreenBuffers[CurrentBufferIndex], Position);
+	WriteConsole(ScreenBuffers[CurrentBufferIndex], InData->Shape.c_str(), 1, NULL, NULL);
+}
+
+void Clear()
+{
+	COORD coordScreen = { 0, 0 };    // home for the cursor
+	DWORD cCharsWritten;
+	CONSOLE_SCREEN_BUFFER_INFO csbi;
+	DWORD dwConSize;
+
+	//스크린 버퍼 정보 가져오기
+	GetConsoleScreenBufferInfo(ScreenBuffers[CurrentBufferIndex], &csbi);
+	dwConSize = csbi.dwSize.X * csbi.dwSize.Y;
+	FillConsoleOutputCharacter(ScreenBuffers[CurrentBufferIndex],
+		(TCHAR)' ',
+		dwConSize,
+		coordScreen,
+		&cCharsWritten);
+}
+
+
+void Present()
+{
+	SetConsoleActiveScreenBuffer(ScreenBuffers[CurrentBufferIndex]);
+
 	CurrentBufferIndex++;
 	CurrentBufferIndex = CurrentBufferIndex % 2;
 }
 
+
 void Render()
 {
-	system("cls");
-	for (int i = 0; i < 3; ++i)
+	Clear();
+
+	//RenderAll
+	for (int i = 0; i < 2; ++i)
 	{
 		RenderCharacter(&Characters[i]);
 	}
+
+	Present();
 }
 
-//초기화
 void Init()
 {
-	//형변환, Casting
+	ScreenBuffers[0] = CreateConsoleScreenBuffer(GENERIC_READ | GENERIC_WRITE, 0, nullptr, CONSOLE_TEXTMODE_BUFFER, NULL);
+
+	ScreenBuffers[1] = CreateConsoleScreenBuffer(GENERIC_READ | GENERIC_WRITE, 0, nullptr, CONSOLE_TEXTMODE_BUFFER, NULL);
+
+	//����ȯ, Casting
 	srand((unsigned int)time(nullptr));
 
 	Characters[0].X = 1;
@@ -78,16 +100,6 @@ void Init()
 	Characters[1].X = 10;
 	Characters[1].Y = 10;
 	Characters[1].Shape = "M";
-
-	//C++에 null 없음
-	//NULL = 0 값 넣어준거 있음
-	FrontBufferHandle = CreateConsoleScreenBuffer(GENERIC_READ | GENERIC_WRITE, 0, nullptr, CONSOLE_TEXTMODE_BUFFER, NULL);
-	BackBufferHandle = CreateConsoleScreenBuffer(GENERIC_READ | GENERIC_WRITE, 0, nullptr, CONSOLE_TEXTMODE_BUFFER, NULL);
-}
-
-void Clear()
-{
-
 }
 
 void MovePlayer()
@@ -143,10 +155,6 @@ void Tick()
 
 int main()
 {
-	//FCharacter* Data = new FCharacter();
-
-	//(*Data).X = 1;
-	//Data->X = 1;
 
 	Init();
 
